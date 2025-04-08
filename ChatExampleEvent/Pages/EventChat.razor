@@ -1,0 +1,49 @@
+﻿@page "/eventchat"
+@using ChatExampleEvent.Services
+@inject ChatService ChatService
+
+<h3>Чат через Event</h3>
+
+<p><strong>Вы:</strong> @username</p>
+
+<input @bind="username" placeholder="Ваше имя" />
+<br />
+<input @bind="message" placeholder="Сообщение" />
+<button @onclick="SendMessage">Отправить</button>
+
+<hr />
+@foreach (var entry in chatHistory)
+{
+    <div><strong>@entry.User:</strong> @entry.Message</div>
+}
+
+@code {
+    private string username = "User";
+    private string message;
+    private List<(string User, string Message)> chatHistory = new();
+
+    protected override void OnInitialized()
+    {
+        ChatService.OnMessageReceived += HandleIncomingMessage;
+    }
+
+    private void HandleIncomingMessage(string user, string msg)
+    {
+        chatHistory.Add((user, msg));
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SendMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            ChatService.SendMessage(username, message);
+            message = string.Empty;
+        }
+    }
+
+    public void Dispose()
+    {
+        ChatService.OnMessageReceived -= HandleIncomingMessage;
+    }
+}
