@@ -1,0 +1,45 @@
+﻿@page "/eventstress"
+@using ChatExampleEvent.Services
+@inject ChatService ChatService
+
+<h3>Тест потокобезопасности событий</h3>
+
+<button @onclick="TestParallelSubscription">Подписаться 100 потоков</button>
+<button @onclick="TriggerEvent">Вызвать событие</button>
+<button @onclick="ClearHandlers">Очистить чат</button>
+
+<hr />
+@foreach (var entry in logs)
+{
+    <div>@entry</div>
+}
+
+@code {
+    private List<string> logs = new();
+
+    private void TestParallelSubscription()
+    {
+        Parallel.For(0, 100, i =>
+        {
+            ChatService.OnMessageReceived += (user, message) =>
+            {
+                var msg = $"[Handler {i}] {user}: {message}";
+                Console.WriteLine(msg);
+                logs.Add(msg);
+                InvokeAsync(StateHasChanged);
+            };
+        });
+
+        logs.Add("✔ 100 подписчиков добавлено (параллельно)");
+    }
+
+    private void TriggerEvent()
+    {
+        ChatService.SendMessage("ТЕСТ", "Сообщение для всех подписчиков");
+    }
+
+    private void ClearHandlers()
+    {
+        logs.Clear();
+    }
+}
